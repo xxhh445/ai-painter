@@ -876,16 +876,25 @@
 
     <script>
         // ====== 配置 ======
-        // 后端 API 地址，留空则使用同源部署
-        // 例如: const API_BASE_URL = 'http://localhost:3000';
-        const API_BASE_URL = '';
+        // 后端 API 地址（已部署到 Railway）
+        const API_BASE_URL = 'https://believable-manifestation.up.railway.app';
         
         const state = {
             isProcessing: false,
             currentImageUrl: null,
             lastPrompt: null,
-            conversation: []
+            conversation: [],
+            apiKeys: {
+                language: localStorage.getItem('lm_api_key') || '',
+                image: localStorage.getItem('img_api_key') || ''
+            }
         };
+
+        // 保存 API Key 到本地存储
+        function saveApiKeys() {
+            localStorage.setItem('lm_api_key', state.apiKeys.language);
+            localStorage.setItem('img_api_key', state.apiKeys.image);
+        }
 
         const robot = document.getElementById('robot');
         const robotStatus = document.getElementById('robotStatus');
@@ -995,11 +1004,11 @@
                 ];
 
                 if (API_BASE_URL) {
-                    // 使用后端代理
+                    // 使用后端代理，传递用户配置的 API Key
                     const response = await fetch(`${API_BASE_URL}/api/chat`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ messages })
+                        body: JSON.stringify({ messages, apiKey: state.apiKeys.language, apiType: 'deepseek' })
                     });
 
                     const data = await response.json();
@@ -1023,7 +1032,7 @@
                     const response = await fetch(`${API_BASE_URL}/api/generate-image`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt, size, style })
+                        body: JSON.stringify({ prompt, size, style, apiKey: state.apiKeys.image })
                     });
 
                     const data = await response.json();
