@@ -1066,19 +1066,33 @@
                     headers['Authorization'] = 'Bearer ' + config.lmKey;
                 }
 
-                const requestBody = {
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        ...state.conversation,
-                        { role: 'user', content: userMessage }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 1000,
-                    stream: false
-                };
-
+                let requestBody;
+                
                 if (isDeepSeek) {
-                    requestBody.model = 'deepseek-chat';
+                    requestBody = {
+                        model: 'deepseek-chat',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            ...state.conversation,
+                            { role: 'user', content: userMessage }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1024,
+                        stream: false,
+                        presence_penalty: 0,
+                        frequency_penalty: 0
+                    };
+                } else {
+                    requestBody = {
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            ...state.conversation,
+                            { role: 'user', content: userMessage }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1000,
+                        stream: false
+                    };
                 }
 
                 console.log('=== API 请求调试信息 ===');
