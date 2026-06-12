@@ -1057,41 +1057,29 @@
             try {
                 const isDeepSeek = config.lmEndpoint.toLowerCase().includes('deepseek');
                 const headers = {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + config.lmKey
                 };
-                
-                if (isDeepSeek) {
-                    headers['Authorization'] = 'api-key ' + config.lmKey;
-                } else {
-                    headers['Authorization'] = 'Bearer ' + config.lmKey;
-                }
+
+                const messages = [
+                    { role: 'system', content: systemPrompt },
+                    ...state.conversation,
+                    { role: 'user', content: userMessage }
+                ];
 
                 let requestBody;
                 
                 if (isDeepSeek) {
                     requestBody = {
                         model: 'deepseek-chat',
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            ...state.conversation,
-                            { role: 'user', content: userMessage }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 1024,
-                        stream: false,
-                        presence_penalty: 0,
-                        frequency_penalty: 0
+                        messages: messages,
+                        temperature: 0.7
                     };
                 } else {
                     requestBody = {
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            ...state.conversation,
-                            { role: 'user', content: userMessage }
-                        ],
+                        messages: messages,
                         temperature: 0.7,
-                        max_tokens: 1000,
-                        stream: false
+                        max_tokens: 1000
                     };
                 }
 
@@ -1099,31 +1087,28 @@
                 console.log('Endpoint:', config.lmEndpoint);
                 console.log('Is DeepSeek:', isDeepSeek);
                 console.log('Headers:', JSON.stringify(headers));
-                console.log('Request Body:', JSON.stringify(requestBody));
+                console.log('Request Body:', JSON.stringify(requestBody, null, 2));
 
                 const response = await fetch(config.lmEndpoint, {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify(requestBody),
-                    mode: 'cors',
-                    cache: 'no-cache',
-                    credentials: 'omit'
+                    body: JSON.stringify(requestBody)
                 });
 
                 console.log('Response Status:', response.status, response.statusText);
                 
                 if (!response.ok) {
-                    const errorText = await response.text().catch(() => null);
-                    let errorMsg = `HTTP ${response.status} ${response.statusText}`;
+                    let errorText = '';
                     try {
-                        const errorData = JSON.parse(errorText || '{}');
-                        errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+                        errorText = await response.text();
+                        const errorData = JSON.parse(errorText);
+                        throw new Error(errorData?.error?.message || errorData?.message || `HTTP ${response.status}`);
                     } catch (e) {
-                        if (errorText) {
-                            errorMsg += ' - ' + errorText.substring(0, 200);
+                        if (e.message.includes('HTTP')) {
+                            throw e;
                         }
+                        throw new Error('API 请求失败: ' + (errorText || response.statusText));
                     }
-                    throw new Error('API 请求失败: ' + errorMsg);
                 }
                 
                 const data = await response.json();
@@ -1132,7 +1117,7 @@
                 const responseContent = data.choices?.[0]?.message?.content || 
                                       data.response || 
                                       data.text || 
-                                      JSON.stringify(data);
+                                      '';
                 return {
                     success: true,
                     response: responseContent
