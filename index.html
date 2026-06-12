@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 绘画工坊</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --accent-primary: #00d4aa;
+            --accent-secondary: #7b68ee;
+            --accent-tertiary: #ff6b9d;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --border-color: #2a2a3a;
+            --glow-primary: rgba(0, 212, 170, 0.3);
+            --glow-secondary: rgba(123, 104, 238, 0.3);
+            --glow-tertiary: rgba(255, 107, 157, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            position: relative;
+        }
+
+        /* 背景效果 */
+        .background-effects {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: float 20s ease-in-out infinite;
+        }
+        .orb-1 { width: 300px; height: 300px; background: var(--accent-primary); top: -60px; right: -60px; }
+        .orb-2 { width: 250px; height: 250px; background: var(--accent-secondary); bottom: -40px; left: 20%; animation-delay: -7s; }
+        .orb-3 { width: 180px; height: 180px; background: var(--accent-tertiary); top: 30%; left: 10%; animation-delay: -12s; }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(20px, -20px) scale(1.08); }
+            50% { transform: translate(-15px, 15px) scale(0.95); }
+            75% { transform: translate(15px, 20px) scale(1.03); }
+        }
+        .grid-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 1;
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(10px);
+            height: 60px;
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo-icon svg { width: 18px; height: 18px; fill: var(--bg-primary); }
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+        }
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .api-status {
+            display: flex;
+            gap: 8px;
+        }
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-card);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .status-badge .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        .status-badge.active .dot {
+            background: var(--accent-primary);
+            box-shadow: 0 0 8px var(--accent-primary);
+        }
+        .status-badge.ai-active .dot {
+            background: var(--accent-secondary);
+            box-shadow: 0 0 8px var(--accent-secondary);
+        }
+        .settings-btn {
+            width: 36px; height: 36px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+        .settings-btn:hover {
+            border-color: var(--accent-secondary);
+            color: var(--accent-secondary);
+            transform: rotate(45deg);
+        }
+        .settings-btn svg { width: 18px; height: 18px; }
+
+        /* 主内容 */
+        .main-content {
+            position: relative;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            grid-template-rows: 1fr auto;
+            gap: 12px;
+            padding: 12px 20px;
+            height: calc(100vh - 60px);
+        }
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+                height: auto;
+                overflow-y: auto;
+            }
+            html, body { overflow: auto; height: auto; }
+        }
+
+        /* 左上 - 机器人 + 对话框 */
+        .left-top-area {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            grid-column: 1;
+            grid-row: 1;
+            min-height: 0;
+        }
+
+        /* 机器人卡片 */
+        .robot-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .robot-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 14px 14px 0 0;
+        }
+
+        .robot-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .robot-wrapper {
+            position: relative;
+            width: 80px;
+            height: 95px;
+            flex-shrink: 0;
+        }
+        .robot {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 优化后的机器人 - 更简洁可爱 */
+        .robot-body-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 机器人动画 */
+        .robot.idle .robot-head-group {
+            animation: idle-bob 3s ease-in-out infinite;
+        }
+        @keyframes idle-bob {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-2px) rotate(2deg); }
+            75% { transform: translateY(-1px) rotate(-2deg); }
+        }
+        .robot.watching .robot-head-group {
+            animation: watching-look 0.5s ease-out forwards;
+        }
+        @keyframes watching-look {
+            to { transform: translateX(5px) rotate(5deg); }
+        }
+        .robot.thinking .robot-head-group {
+            animation: thinking-tilt 1.5s ease-in-out infinite;
+        }
+        @keyframes thinking-tilt {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            30% { transform: translateX(-3px) rotate(-5deg); }
+            60% { transform: translateX(3px) rotate(5deg); }
+        }
+        .robot.drawing .robot-head-group {
+            animation: drawing-shake 0.3s ease-in-out infinite;
+        }
+        @keyframes drawing-shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+        .robot-status-text {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            text-align: center;
+        }
+        .robot-status-text.active { color: var(--accent-primary); }
+
+        /* 对话卡片 */
+        .chat-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+        .chat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-secondary), var(--accent-tertiary));
+            border-radius: 14px 14px 0 0;
+        }
+        .chat-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .chat-header-icon {
+            width: 28px; height: 28px;
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-tertiary));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-header-icon svg { width: 16px; height: 16px; fill: white; }
+        .chat-header-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+        .chat-messages::-webkit-scrollbar { width: 4px; }
+        .chat-messages::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+        .message {
+            max-width: 88%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            animation: message-in 0.3s ease-out;
+        }
+        @keyframes message-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent-primary), #00b894);
+            color: var(--bg-primary);
+            border-bottom-right-radius: 4px;
+        }
+        .message.ai {
+            align-self: flex-start;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+        .message.system {
+            align-self: center;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            text-align: center;
+        }
+        .message.error {
+            background: rgba(255, 107, 157, 0.15);
+            border: 1px solid var(--accent-tertiary);
+            color: var(--accent-tertiary);
+        }
+
+        .chat-input-area {
+            padding: 10px 12px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .chat-input {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.85rem;
+            resize: none;
+            max-height: 80px;
+            transition: border-color 0.3s;
+        }
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent-secondary);
+        }
+        .chat-input::placeholder { color: var(--text-muted); }
+        .chat-send-btn {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-tertiary));
+            border: none;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .chat-send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px var(--glow-secondary);
+        }
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .chat-send-btn svg { width: 18px; height: 18px; fill: white; }
+
+        /* 右侧 - 工作区 */
+        .right-area {
+            grid-column: 2;
+            grid-row: 1 / 3;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+        @media (max-width: 900px) {
+            .right-area { grid-column: 1; grid-row: auto; }
+        }
+
+        /* 输入卡片 */
+        .input-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            position: relative;
+        }
+        .input-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-tertiary), var(--accent-primary));
+            border-radius: 14px 14px 0 0;
+        }
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+        }
+        .card-title::before {
+            content: '';
+            width: 3px; height: 14px;
+            background: var(--accent-tertiary);
+            border-radius: 2px;
+        }
+        .prompt-input-wrapper { position: relative; }
+        .prompt-input {
+            width: 100%;
+            height: 70px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.9rem;
+            resize: none;
+            transition: all 0.3s;
+            line-height: 1.5;
+        }
+        .prompt-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 15px var(--glow-primary);
+        }
+        .prompt-input::placeholder { color: var(--text-muted); }
+        .char-count {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .params-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .param-item { display: flex; flex-direction: column; gap: 4px; }
+        .param-label { font-size: 0.72rem; color: var(--text-muted); }
+        .param-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 7px 10px;
+            color: var(--text-primary);
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .param-select:focus { outline: none; border-color: var(--accent-secondary); }
+
+        .generate-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border: none;
+            border-radius: 8px;
+            color: var(--bg-primary);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            margin-top: 10px;
+            letter-spacing: 1px;
+        }
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        .generate-btn:hover::before { left: 100%; }
+        .generate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--glow-primary);
+        }
+        .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .generate-btn.loading { background: linear-gradient(135deg, var(--accent-secondary), var(--accent-tertiary)); }
+
+        /* 结果卡片 */
+        .result-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            position: relative;
+        }
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-tertiary));
+            border-radius: 14px 14px 0 0;
+        }
+        .result-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            border: 2px dashed var(--border-color);
+            position: relative;
+            overflow: hidden;
+            min-height: 200px;
+        }
+        .result-placeholder {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 16px;
+        }
+        .result-placeholder svg {
+            width: 40px; height: 40px;
+            margin-bottom: 8px;
+            opacity: 0.35;
+        }
+        .result-placeholder p { font-size: 0.82rem; }
+        .result-image {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            display: none;
+            object-fit: contain;
+        }
+        .result-image.visible { display: block; }
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: var(--text-secondary); font-size: 0.82rem; }
+
+        /* 操作按钮 */
+        .result-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-shrink: 0;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .action-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        .action-btn svg { width: 14px; height: 14px; }
+
+        @media (max-width: 600px) {
+            .logo { font-size: 1rem; }
+            .params-row { grid-template-columns: 1fr; }
+            .top-bar { padding: 10px 14px; }
+            .main-content { padding: 10px 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-effects">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
+    <div class="grid-bg"></div>
+
+    <!-- 顶部栏 -->
+    <div class="top-bar">
+        <div class="logo-area">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div class="logo">AI PAINTER</div>
+        </div>
+        <div class="top-bar-right">
+            <div class="api-status">
+                <span class="status-badge" id="lmStatus">
+                    <span class="dot"></span>
+                    <span>语言模型</span>
+                </span>
+                <span class="status-badge" id="imgStatus">
+                    <span class="dot"></span>
+                    <span>生图模型</span>
+                </span>
+            </div>
+            <a class="settings-btn" href="settings.html" title="设置">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main-content">
+        <!-- 左上 - 机器人和对话框 -->
+        <div class="left-top-area">
+            <!-- 机器人 -->
+            <div class="robot-card">
+                <div class="robot-container">
+                    <div class="robot-wrapper">
+                        <div class="robot idle" id="robot">
+                            <svg class="robot-body-svg" viewBox="0 0 80 95">
+                                <!-- 天线 -->
+                                <line x1="40" y1="8" x2="40" y2="18" stroke="#4a4a5a" stroke-width="2.5" stroke-linecap="round"/>
+                                <circle cx="40" cy="6" r="5" fill="var(--accent-primary)" opacity="0.9">
+                                    <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+                                </circle>
+
+                                <!-- 头部 -->
+                                <g class="robot-head-group">
+                                    <!-- 头部主体 -->
+                                    <rect x="14" y="16" width="52" height="42" rx="14" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="2"/>
+                                    <!-- 眼睛 -->
+                                    <circle cx="29" cy="36" r="9" fill="#1a1a25" stroke="#3a3a4a" stroke-width="1.5"/>
+                                    <circle cx="51" cy="36" r="9" fill="#1a1a25" stroke="#3a3a4a" stroke-width="1.5"/>
+                                    <!-- 瞳孔 -->
+                                    <circle id="leftPupil" cx="29" cy="36" r="5" fill="var(--accent-primary)">
+                                        <animate attributeName="cx" values="29;25;29;33;29" dur="4s" repeatCount="indefinite"/>
+                                    </circle>
+                                    <circle id="rightPupil" cx="51" cy="36" r="5" fill="var(--accent-primary)">
+                                        <animate attributeName="cx" values="51;47;51;55;51" dur="4s" repeatCount="indefinite"/>
+                                    </circle>
+                                    <circle cx="27" cy="34" r="1.5" fill="white" opacity="0.8"/>
+                                    <circle cx="49" cy="34" r="1.5" fill="white" opacity="0.8"/>
+                                    <!-- 嘴巴 -->
+                                    <rect x="30" y="48" width="20" height="6" rx="3" fill="#1a1a25" stroke="#3a3a4a" stroke-width="1"/>
+                                    <rect id="mouthGlow" x="33" y="50" width="14" height="2" rx="1" fill="var(--accent-primary)" opacity="0.7"/>
+                                </g>
+
+                                <!-- 身体 -->
+                                <rect x="22" y="62" width="36" height="28" rx="8" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="2"/>
+                                <!-- 屏幕 -->
+                                <rect x="28" y="67" width="24" height="16" rx="4" fill="#1a1a25" stroke="#3a3a4a" stroke-width="1"/>
+                                <text id="screenText" x="40" y="78" text-anchor="middle" fill="var(--accent-primary)" font-family="Orbitron, monospace" font-size="6">READY</text>
+
+                                <!-- 左手（调色板） -->
+                                <line x1="22" y1="66" x2="10" y2="78" stroke="#3a3a4a" stroke-width="4" stroke-linecap="round"/>
+                                <circle cx="8" cy="80" r="6" fill="#6b4a2b" stroke="#4a331b" stroke-width="1.5"/>
+                                <circle cx="6" cy="78" r="2" fill="var(--accent-primary)"/>
+                                <circle cx="10" cy="81" r="1.5" fill="var(--accent-tertiary)"/>
+
+                                <!-- 右手（画笔） -->
+                                <line x1="58" y1="66" x2="70" y2="78" stroke="#3a3a4a" stroke-width="4" stroke-linecap="round"/>
+                                <circle cx="72" cy="80" r="5" fill="#4a4a5a" stroke="#5a5a6a" stroke-width="1"/>
+                                <rect x="70" y="84" width="3" height="10" rx="1" fill="#8b6f47"/>
+                                <ellipse cx="71.5" cy="94" rx="4" ry="2.5" fill="var(--accent-secondary)"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="robot-info">
+                        <div class="robot-name" style="font-size: 0.85rem; font-weight: 500; margin-bottom: 2px;">小画师</div>
+                        <div class="robot-status-text" id="robotStatus">等待指令...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 对话框 -->
+            <div class="chat-card">
+                <div class="chat-header">
+                    <div class="chat-header-icon">
+                        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    </div>
+                    <span class="chat-header-title">AI 对话</span>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message system">✨ 欢迎！我可以帮你优化绘图描述，并与生图模型协作创作</div>
+                </div>
+                <div class="chat-input-area">
+                    <textarea
+                        class="chat-input"
+                        id="chatInput"
+                        placeholder="输入你的绘图需求..."
+                        rows="1"
+                    ></textarea>
+                    <button class="chat-send-btn" id="chatSendBtn">
+                        <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧 - 工作区 -->
+        <div class="right-area">
+            <!-- 输入区域 -->
+            <div class="input-card">
+                <div class="card-title">绘图提示词</div>
+                <div class="prompt-input-wrapper">
+                    <textarea
+                        class="prompt-input"
+                        id="promptInput"
+                        placeholder="描述你想要生成的图像...&#10;也可以通过左侧对话让 AI 帮你优化"
+                        maxlength="1000"
+                    ></textarea>
+                    <span class="char-count"><span id="charCount">0</span>/1000</span>
+                </div>
+                <div class="params-row">
+                    <div class="param-item">
+                        <label class="param-label">图片尺寸</label>
+                        <select class="param-select" id="imageSize">
+                            <option value="square_hd">正方形 HD</option>
+                            <option value="square">正方形</option>
+                            <option value="portrait_4_3">竖版 4:3</option>
+                            <option value="portrait_16_9">竖版 16:9</option>
+                            <option value="landscape_4_3">横版 4:3</option>
+                            <option value="landscape_16_9">横版 16:9</option>
+                        </select>
+                    </div>
+                    <div class="param-item">
+                        <label class="param-label">风格</label>
+                        <select class="param-select" id="imageStyle">
+                            <option value="realistic">写实风格</option>
+                            <option value="anime">动漫风格</option>
+                            <option value="oil-painting">油画风格</option>
+                            <option value="watercolor">水彩风格</option>
+                            <option value="pixel-art">像素风格</option>
+                            <option value="3d-render">3D 渲染</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="generate-btn" id="generateBtn">🎨 开始创作</button>
+            </div>
+
+            <!-- 结果区域 -->
+            <div class="result-card">
+                <div class="card-title">生成预览</div>
+                <div class="result-wrapper" id="resultContainer">
+                    <div class="result-placeholder" id="resultPlaceholder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <p>生成的图像将显示在这里</p>
+                    </div>
+                    <img class="result-image" id="resultImage" alt="生成的图像">
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text" id="loadingText">AI 正在创作中...</div>
+                    </div>
+                </div>
+                <div class="result-actions">
+                    <button class="action-btn" id="downloadBtn" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        下载
+                    </button>
+                    <button class="action-btn" id="regenerateBtn" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        重新生成
+                    </button>
+                    <button class="action-btn" id="copyPromptBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        复制提示词
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====== 状态管理 ======
+        const state = {
+            isProcessing: false,
+            currentImageUrl: null,
+            lastPrompt: null,
+            conversation: []
+        };
+
+        // ====== DOM 元素 ======
+        const robot = document.getElementById('robot');
+        const robotStatus = document.getElementById('robotStatus');
+        const screenText = document.getElementById('screenText');
+        const mouthGlow = document.getElementById('mouthGlow');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const promptInput = document.getElementById('promptInput');
+        const charCount = document.getElementById('charCount');
+        const generateBtn = document.getElementById('generateBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultPlaceholder = document.getElementById('resultPlaceholder');
+        const resultImage = document.getElementById('resultImage');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const regenerateBtn = document.getElementById('regenerateBtn');
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        const lmStatus = document.getElementById('lmStatus');
+        const imgStatus = document.getElementById('imgStatus');
+
+        // ====== API 配置 ======
+        function getConfig() {
+            return {
+                lmEndpoint: localStorage.getItem('lm_api_endpoint'),
+                lmKey: localStorage.getItem('lm_api_key'),
+                imgEndpoint: localStorage.getItem('img_api_endpoint'),
+                imgKey: localStorage.getItem('img_api_key')
+            };
+        }
+
+        function updateApiStatus() {
+            const config = getConfig();
+            if (config.lmEndpoint && config.lmKey) {
+                lmStatus.classList.add('active');
+            } else {
+                lmStatus.classList.remove('active');
+            }
+            if (config.imgEndpoint && config.imgKey) {
+                imgStatus.classList.add('ai-active');
+            } else {
+                imgStatus.classList.remove('ai-active');
+            }
+        }
+
+        updateApiStatus();
+
+        // ====== 机器人动画 ======
+        function setRobotState(stateName) {
+            robot.className = 'robot ' + stateName;
+            const states = {
+                idle: { text: '等待指令...', screen: 'READY' },
+                watching: { text: '我在听你说...', screen: 'LISTEN' },
+                thinking: { text: '正在思考...', screen: 'THINK' },
+                drawing: { text: '正在作画...', screen: 'DRAW' },
+                speaking: { text: '正在说话...', screen: 'SPEAK' }
+            };
+            const s = states[stateName] || states.idle;
+            robotStatus.textContent = s.text;
+            robotStatus.classList.toggle('active', stateName !== 'idle');
+            screenText.textContent = s.screen;
+        }
+
+        // ====== 对话功能 ======
+        function addMessage(content, type = 'ai') {
+            const msg = document.createElement('div');
+            msg.className = 'message ' + type;
+            msg.textContent = content;
+            chatMessages.appendChild(msg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addSystemMessage(content) {
+            const msg = document.createElement('div');
+            msg.className = 'message system';
+            msg.textContent = content;
+            chatMessages.appendChild(msg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // ====== 语言模型对话 ======
+        async function sendToLanguageModel(userMessage) {
+            const config = getConfig();
+            if (!config.lmEndpoint || !config.lmKey) {
+                return {
+                    success: false,
+                    error: '语言模型 API 未配置，请在设置中配置语言模型 API'
+                };
+            }
+
+            const systemPrompt = `你是一位专业的 AI 绘画助手。用户会描述他们想要的图像，你的工作是：
+1. 理解用户的意图
+2. 优化和完善图像描述，使其更加详细、生动
+3. 如果用户的需求不明确，主动询问细节
+4. 给出专业的绘画建议（构图、风格、光影等）
+5. 保持对话简洁友好
+
+当用户确认描述后，以 JSON 格式回复：
+{"final_prompt": "优化后的完整描述", "ready": true}
+
+如果还需要更多信息，回复：
+{"question": "你想问的问题", "ready": false}`;
+
+            try {
+                const response = await fetch(config.lmEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + config.lmKey
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            ...state.conversation,
+                            { role: 'user', content: userMessage }
+                        ],
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) throw new Error('API 请求失败');
+                const data = await response.json();
+                return {
+                    success: true,
+                    response: data.choices?.[0]?.message?.content || data.response || ''
+                };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // ====== 图像生成 ======
+        async function generateImage(prompt, size, style) {
+            const config = getConfig();
+            if (!config.imgEndpoint || !config.imgKey) {
+                return {
+                    success: false,
+                    error: '图像生成 API 未配置，请在设置中配置图像模型 API'
+                };
+            }
+
+            try {
+                const response = await fetch(config.imgEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + config.imgKey
+                    },
+                    body: JSON.stringify({ prompt, size, style })
+                });
+
+                if (!response.ok) throw new Error('API 请求失败');
+                const data = await response.json();
+                const url = data.image_url || data.url || (data.data && data.data.url);
+                if (!url) throw new Error('无效的响应格式');
+                return { success: true, url };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // ====== 聊天处理 ======
+        async function handleChat() {
+            const message = chatInput.value.trim();
+            if (!message || state.isProcessing) return;
+
+            state.isProcessing = true;
+            chatSendBtn.disabled = true;
+            addMessage(message, 'user');
+            chatInput.value = '';
+            setRobotState('thinking');
+
+            const result = await sendToLanguageModel(message);
+
+            if (result.success) {
+                state.conversation.push({ role: 'user', content: message });
+                state.conversation.push({ role: 'assistant', content: result.response });
+
+                // 解析回复
+                let aiResponse = result.response;
+                try {
+                    const jsonMatch = result.response.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        const json = JSON.parse(jsonMatch[0]);
+                        if (json.final_prompt) {
+                            // 有最终提示词
+                            setRobotState('speaking');
+                            addMessage('好的，我已经优化好描述了！正在生成图像...', 'ai');
+                            promptInput.value = json.final_prompt;
+                            charCount.textContent = json.final_prompt.length;
+                            state.lastPrompt = json.final_prompt;
+                            await handleGenerate();
+                        } else if (json.question) {
+                            setRobotState('speaking');
+                            addMessage(json.question, 'ai');
+                        } else {
+                            setRobotState('speaking');
+                            addMessage(aiResponse.replace(jsonMatch[0], '').trim() || '我在听，请继续说～', 'ai');
+                        }
+                    } else {
+                        setRobotState('speaking');
+                        addMessage(aiResponse, 'ai');
+                    }
+                } catch {
+                    setRobotState('speaking');
+                    addMessage(aiResponse, 'ai');
+                }
+            } else {
+                addMessage('出错了：' + result.error, 'error');
+                setRobotState('idle');
+            }
+
+            state.isProcessing = false;
+            chatSendBtn.disabled = false;
+            if (state.isProcessing === false) setRobotState('idle');
+        }
+
+        // ====== 生成处理 ======
+        async function handleGenerate() {
+            const prompt = promptInput.value.trim() || state.lastPrompt;
+            if (!prompt) {
+                promptInput.focus();
+                return;
+            }
+
+            if (state.isProcessing) return;
+
+            state.isProcessing = true;
+            setRobotState('drawing');
+            generateBtn.disabled = true;
+            generateBtn.classList.add('loading');
+            generateBtn.textContent = '创作中...';
+            loadingOverlay.classList.add('active');
+            resultPlaceholder.style.display = 'none';
+            resultImage.classList.remove('visible');
+
+            const size = document.getElementById('imageSize').value;
+            const style = document.getElementById('imageStyle').value;
+            loadingText.textContent = 'AI 正在创作中...';
+
+            const result = await generateImage(prompt, size, style);
+
+            if (result.success) {
+                resultImage.src = result.url;
+                resultImage.classList.add('visible');
+                state.currentImageUrl = result.url;
+                state.lastPrompt = prompt;
+                downloadBtn.disabled = false;
+                regenerateBtn.disabled = false;
+                setRobotState('idle');
+                robotStatus.textContent = '创作完成！';
+                addSystemMessage('✅ 图像已生成');
+            } else {
+                addMessage('生成失败：' + result.error, 'error');
+                resultPlaceholder.style.display = 'block';
+                setRobotState('idle');
+            }
+
+            state.isProcessing = false;
+            generateBtn.disabled = false;
+            generateBtn.classList.remove('loading');
+            generateBtn.textContent = '🎨 开始创作';
+            loadingOverlay.classList.remove('active');
+        }
+
+        // ====== 事件绑定 ======
+        chatSendBtn.addEventListener('click', handleChat);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChat();
+            }
+        });
+        chatInput.addEventListener('input', () => {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 80) + 'px';
+        });
+
+        promptInput.addEventListener('input', () => {
+            charCount.textContent = promptInput.value.length;
+        });
+        promptInput.addEventListener('focus', () => {
+            if (!state.isProcessing) setRobotState('watching');
+        });
+        promptInput.addEventListener('blur', () => {
+            if (!state.isProcessing) setRobotState('idle');
+        });
+
+        generateBtn.addEventListener('click', handleGenerate);
+
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                handleGenerate();
+            }
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            if (!state.currentImageUrl) return;
+            try {
+                const a = document.createElement('a');
+                a.href = state.currentImageUrl;
+                a.download = 'ai-artwork-' + Date.now() + '.png';
+                a.click();
+            } catch (e) {
+                alert('下载失败');
+            }
+        });
+
+        regenerateBtn.addEventListener('click', () => {
+            if (state.lastPrompt) {
+                promptInput.value = state.lastPrompt;
+                handleGenerate();
+            }
+        });
+
+        copyPromptBtn.addEventListener('click', () => {
+            const text = promptInput.value || state.lastPrompt;
+            if (text) {
+                navigator.clipboard.writeText(text);
+                addSystemMessage('📋 提示词已复制到剪贴板');
+            }
+        });
+
+        // 初始化
+        setRobotState('idle');
+    </script>
+</body>
+</html>
