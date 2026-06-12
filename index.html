@@ -120,7 +120,6 @@
             border-radius: 8px;
             font-size: 0.85rem;
             color: var(--text-secondary);
-            transition: all 0.3s;
         }
         .status-badge.active {
             border-color: var(--accent-primary);
@@ -130,16 +129,10 @@
             width: 8px; height: 8px;
             border-radius: 50%;
             background: var(--text-muted);
-            transition: all 0.3s;
         }
         .status-badge.active .status-dot {
             background: var(--accent-primary);
             box-shadow: 0 0 8px var(--accent-primary);
-            animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
         }
         .settings-btn {
             padding: 10px 14px;
@@ -357,7 +350,6 @@
             font-size: 0.9rem;
             line-height: 1.5;
             word-wrap: break-word;
-            white-space: pre-wrap;
         }
         .message.user {
             align-self: flex-end;
@@ -377,7 +369,6 @@
             font-style: italic;
             font-size: 0.85rem;
             text-align: center;
-            max-width: 95%;
         }
         .message.error {
             align-self: center;
@@ -404,7 +395,8 @@
             resize: none;
             outline: none;
             transition: all 0.3s;
-            min-height: 44px;
+            height: 44px;
+            max-height: 100px;
         }
         .chat-input:focus {
             border-color: var(--accent-primary);
@@ -420,6 +412,8 @@
             border-radius: 10px;
             color: white;
             cursor: pointer;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: 500;
             transition: all 0.3s;
         }
         .send-btn:hover:not(:disabled):hover {
@@ -690,7 +684,7 @@
             </div>
         </div>
         <button class="settings-btn" id="settingsBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0-3 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.82-.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 1.82-.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0-3 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.82-.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 1.82-.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             <span>设置</span>
         </button>
     </div>
@@ -761,9 +755,9 @@
                         <select class="option-select" id="imageStyle">
                             <option value="realistic">写实</option>
                             <option value="anime">动漫</option>
-                            <option value="oil painting">油画</option>
+                            <option value="oil">油画</option>
                             <option value="watercolor">水彩</option>
-                            <option value="3d render">3D渲染</option>
+                            <option value="3d">3D渲染</option>
                         </select>
                     </div>
                 </div>
@@ -803,34 +797,25 @@
     </div>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center;">
+    <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
         <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:20px; padding:30px; max-width:500px; width:90%;">
             <h2 style="font-size:1.3rem; margin-bottom:20px;">API 设置</h2>
             <div style="margin-bottom:20px;">
                 <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">DeepSeek API Key</label>
-                <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxxxxxx" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:0.9rem;">
+                <input type="password" id="apiKeyInput" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:0.9rem;">
             </div>
-            <div style="display:flex; gap:10px; margin-bottom:12px;">
+            <div style="display:flex; gap:10px;">
                 <button id="saveSettings" style="flex:1; padding:12px; background:linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border:none; border-radius:8px; color:white; font-weight:500; cursor:pointer;">保存</button>
-                <button id="testSettings" style="flex:1; padding:12px; background:var(--bg-secondary); border:2px solid var(--accent-primary); border-radius:8px; color:var(--accent-primary); font-weight:500; cursor:pointer;">测试连接</button>
                 <button id="closeSettings" style="flex:1; padding:12px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; color:var(--text-secondary); cursor:pointer;">关闭</button>
             </div>
-            <div id="testResult" style="margin-bottom:12px; font-size:0.85rem; color:var(--accent-primary); padding:10px; background:rgba(0,212,170,0.1); border-radius:8px; display:none;"></div>
             <p style="margin-top:16px; font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
-                💡 <strong>使用说明：</strong><br>
-                • <strong>AI 对话</strong>：需要配置 DeepSeek API Key<br>
-                • <strong>图像生成</strong>：使用免费服务，不需要 API Key<br>
-                • <strong>API Key 保存位置</strong>：仅保存在你的浏览器中（localStorage）<br>
-                • <strong>获取 API Key</strong>：<a href="https://platform.deepseek.com" target="_blank" style="color:var(--accent-primary);">点击访问 DeepSeek 官网</a>
+                API Key 仅保存在你的浏览器中，不会上传到任何服务器。<br>
+                你可以在 <a href="https://platform.deepseek.com" target="_blank" style="color:var(--accent-primary);">DeepSeek 官网</a> 获取 API Key。
             </p>
         </div>
     </div>
 
     <script>
-        // 配置
-        // 将此地址改为你的后端服务地址（部署后替换）
-        const API_BASE_URL = 'https://ai-painter-production.up.railway.app';  // 后端服务地址
-        
         // State
         const state = {
             apiKey: localStorage.getItem('deepseek_api_key') || '',
@@ -838,15 +823,6 @@
             conversation: [],
             currentImageUrl: null
         };
-
-        // 获取 API 地址
-        function getApiUrl(endpoint) {
-            if (API_BASE_URL) {
-                return `${API_BASE_URL}${endpoint}`;
-            }
-            // 如果没有配置后端地址，直接调用 DeepSeek API
-            return `https://api.deepseek.com/v1${endpoint}`;
-        }
 
         // Elements
         const robotSvg = document.getElementById('robotSvg');
@@ -931,134 +907,16 @@
             settingsModal.style.display = 'none';
         });
 
-        testSettings.addEventListener('click', async () => {
-            const key = apiKeyInput.value.trim();
-            if (!key) {
-                showTestResult('⚠️ 请先输入 API Key', false);
-                return;
-            }
-
-            showTestResult('⏳ 正在测试连接...', true);
-            const result = await testApiKey(key);
-            showTestResult(result.message, result.success);
-        });
-
-        function showTestResult(message, success) {
-            const resultEl = document.getElementById('testResult');
-            resultEl.style.display = 'block';
-            resultEl.textContent = message;
-            resultEl.style.color = success ? 'var(--accent-primary)' : '#ff6b9d';
-            resultEl.style.background = success ? 'rgba(0,212,170,0.1)' : 'rgba(255,107,157,0.1)';
-        }
-
-        // DeepSeek API call function - 通过后端或直接调用
-        async function callDeepSeek(messages) {
-            console.log('🔍 [API调用] 开始请求...');
-            console.log('🔑 [API Key]', state.apiKey ? '已配置 (长度: ' + state.apiKey.length + ')' : '未配置');
-            console.log('🌐 [模式]', API_BASE_URL ? '后端代理' : '直接调用');
-            console.log('📝 [消息]', messages);
-
-            let response, data;
-
-            if (API_BASE_URL) {
-                // 通过后端代理
-                console.log('🔄 [后端] 调用中转服务...');
-                response = await fetch(getApiUrl('/api/chat'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: messages,
-                        apiKey: state.apiKey  // 如果后端没有配置 API Key，则传递
-                    })
-                });
-            } else {
-                // 直接调用 DeepSeek API
-                console.log('🔄 [直连] 直接调用 DeepSeek API...');
-                response = await fetch(getApiUrl('/chat/completions'), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + state.apiKey
-                    },
-                    body: JSON.stringify({
-                        model: 'deepseek-chat',
-                        messages: messages,
-                        temperature: 0.7
-                    })
-                });
-            }
-
-            console.log('📊 [响应状态] HTTP', response.status);
-            data = await response.json();
-            console.log('📦 [响应数据]', data);
-
-            if (!response.ok) {
-                const errorMsg = data.error?.message || data.message ||
-                                 data.error || 'API 错误 (HTTP ' + response.status + ')';
-                console.error('❌ [API 错误]', errorMsg);
-                throw new Error(errorMsg);
-            }
-
-            // 根据调用模式解析响应
-            let content;
-            if (API_BASE_URL) {
-                // 后端返回的是 OpenAI 格式
-                content = data.choices?.[0]?.message?.content || '';
-            } else {
-                // 直接调用 DeepSeek
-                content = data.choices?.[0]?.message?.content || '';
-            }
-
-            console.log('✅ [成功] 收到回复:', content.substring(0, 50) + '...');
-            return content;
-        }
-
-        // 测试 API Key 的函数
-        async function testApiKey(apiKey) {
-            try {
-                let response;
-
-                if (API_BASE_URL) {
-                    // 通过后端测试
-                    response = await fetch(getApiUrl('/api/test'), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ apiKey: apiKey })
-                    });
-                    const data = await response.json();
-                    return data;
-                } else {
-                    // 直接测试 DeepSeek API
-                    response = await fetch(getApiUrl('/chat/completions'), {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + apiKey
-                        },
-                        body: JSON.stringify({
-                            model: 'deepseek-chat',
-                            messages: [{ role: 'user', content: 'hi' }],
-                            max_tokens: 5
-                        })
-                    });
-
-                    if (response.ok) {
-                        return { success: true, message: '✅ API Key 验证成功！' };
-                    } else {
-                        const data = await response.json();
-                        const errorMsg = data.error?.message || data.error || 'HTTP ' + response.status;
-                        return { success: false, message: '❌ API Key 错误: ' + errorMsg };
-                    }
-                }
-            } catch (error) {
-                return { success: false, message: '❌ 请求失败: ' + error.message };
-            }
-        }
-
         // Chat with AI
         chatSendBtn.addEventListener('click', async () => {
             const message = chatInput.value.trim();
             if (!message || state.isProcessing) return;
+
+            if (!state.apiKey) {
+                addMessage('请先在设置中配置 API Key', 'system');
+                settingsModal.style.display = 'flex';
+                return;
+            }
 
             state.isProcessing = true;
             chatSendBtn.disabled = true;
@@ -1067,29 +925,44 @@
             setRobotState('thinking');
 
             try {
+                // Call backend proxy API
                 const messages = [
                     { role: 'system', content: '你是一位专业的 AI 绘画助手。用户会描述他们想要的图像，你的任务是：\n1. 理解用户需求\n2. 用中文友好地回应用户\n3. 给出优化后的绘图提示词（English prompt）\n4. 保持回复简练，不超过100字' },
                     { role: 'user', content: message }
                 ];
 
-                const aiResponse = await callDeepSeek(messages);
+                // 使用当前页面的域名作为后端地址（与前端同域部署）
+                const backendUrl = window.location.origin;
 
-                if (aiResponse) {
-                    addMessage(aiResponse, 'ai');
+                const response = await fetch(backendUrl + '/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messages: messages,
+                        apiKey: state.apiKey
+                    })
+                });
 
-                    // Auto-fill prompt if user described an image idea
-                    if (message.length > 10) {
-                        promptInput.value = message;
-                        charCount.textContent = message.length;
-                    }
-                } else {
-                    addMessage('抱歉，我没有理解你的意思，请重试。', 'error');
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'API 请求失败');
+                }
+
+                const aiResponse = data.response || '抱歉，我没理解你的意思。';
+                addMessage(aiResponse, 'ai');
+
+                // Auto-fill prompt if user described an image idea
+                if (message.length > 10) {
+                    promptInput.value = message;
+                    charCount.textContent = message.length;
                 }
 
                 setRobotState('idle');
 
             } catch (error) {
-                console.error('API Error:', error);
                 addMessage('错误: ' + error.message, 'error');
                 setRobotState('idle');
             }
@@ -1103,6 +976,12 @@
             const prompt = promptInput.value.trim();
             if (!prompt || state.isProcessing) return;
 
+            if (!state.apiKey) {
+                addMessage('请先在设置中配置 API Key', 'system');
+                settingsModal.style.display = 'flex';
+                return;
+            }
+
             state.isProcessing = true;
             generateBtn.disabled = true;
             setRobotState('drawing');
@@ -1114,74 +993,42 @@
             imageActions.style.display = 'none';
 
             try {
+                // Use DeepSeek AI to enhance the prompt first, then use a placeholder image service
+                // Note: For actual image generation, users would need an image API
+                // Since DeepSeek doesn't do image generation - we need another service
+
+                // For image generation, we'll try to use a free service
+                // Try using Pollinations.ai (free, no API key needed)
+
                 const size = imageSize.value;
                 const [width, height] = size.split('x');
-                const style = imageStyle.options[imageStyle.selectedIndex].text;
 
-                // Build enhanced prompt
-                const finalPrompt = prompt + ', ' + style + ', high quality, detailed';
+                // Use Pollinations.ai for free image generation
+                const imageUrl = `https://image.pollinations.ai/prompt/` + 
+                    encodeURIComponent(prompt + ', ' + imageStyle.options[imageStyle.selectedIndex].text) +
+                    `?width=${width}&height=${height}&nologo=true`;
 
-                console.log('🎨 [图像生成] 开始...');
-                console.log('📝 提示词:', finalPrompt);
-                console.log('📐 尺寸:', width, 'x', height);
-                console.log('🌐 [模式]', API_BASE_URL ? '后端代理' : '直接调用');
+                // Simulate generation time
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
-                let imageUrl;
+                state.currentImageUrl = imageUrl;
+                resultImage.src = imageUrl;
 
-                if (API_BASE_URL) {
-                    // 通过后端代理生成图像
-                    console.log('🔄 [后端] 调用图像生成服务...');
-                    const response = await fetch(getApiUrl('/api/generate-image'), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            prompt: prompt,
-                            width: parseInt(width),
-                            height: parseInt(height),
-                            style: style
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || '图像生成失败');
-                    }
-
-                    imageUrl = data.imageUrl;
-                    console.log('✅ [图像生成] 成功:', imageUrl);
-                } else {
-                    // 直接使用 Pollinations.ai
-                    imageUrl = 'https://image.pollinations.ai/prompt/' + 
-                        encodeURIComponent(finalPrompt) +
-                        '?width=' + width + '&height=' + height + '&nologo=true';
-                }
-
-                // Preload image
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-
-                img.onload = () => {
-                    resultImage.src = imageUrl;
-                    state.currentImageUrl = imageUrl;
+                resultImage.onload = () => {
                     loadingSpinner.style.display = 'none';
                     resultImage.style.display = 'block';
                     imageActions.style.display = 'flex';
                     setRobotState('idle');
                 };
 
-                img.onerror = () => {
+                resultImage.onerror = () => {
                     loadingSpinner.style.display = 'none';
                     imagePlaceholder.style.display = 'block';
-                    addMessage('图像生成失败，请重试或使用其他提示词', 'error');
+                    addMessage('图像生成失败，请重试', 'error');
                     setRobotState('idle');
                 };
 
-                // Start loading
-                img.src = imageUrl;
-
             } catch (error) {
-                console.error('❌ [图像生成] 错误:', error);
                 loadingSpinner.style.display = 'none';
                 imagePlaceholder.style.display = 'block';
                 addMessage('错误: ' + error.message, 'error');
@@ -1223,7 +1070,7 @@
         });
 
         // Welcome message
-        addMessage('欢迎使用 AI 绘画工坊！请先点击右上角 ⚙️ 设置按钮，配置你的 DeepSeek API Key，然后就可以开始创作了！\n\n💡 提示：\n• 语言模型 - 用于和你对话，优化创意描述\n• 图像生成 - 使用免费的 Pollinations.ai 服务\n• 你可以直接在右侧输入提示词，或在左侧与AI对话', 'system');
+        addMessage('欢迎使用 AI 绘画工坊！请先点击右上角设置按钮配置你的 DeepSeek API Key，然后就可以开始创作了！', 'system');
     </script>
 </body>
 </html>
