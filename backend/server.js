@@ -7,12 +7,12 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件
 app.use(cors());
 app.use(express.json());
+
+// 提供前端静态文件（index.html 在项目根目录）
 app.use(express.static(path.join(__dirname, '..')));
 
-// API 配置
 const API_CONFIG = {
     deepseek: {
         baseUrl: 'https://api.deepseek.com/v1',
@@ -20,7 +20,6 @@ const API_CONFIG = {
     }
 };
 
-// 通用请求处理函数
 async function proxyRequest(apiType, endpoint, body, apiKey) {
     const config = API_CONFIG[apiType];
     if (!config) {
@@ -28,19 +27,17 @@ async function proxyRequest(apiType, endpoint, body, apiKey) {
     }
 
     const url = `${config.baseUrl}/${endpoint}`;
-    
+
     const headers = {
         'Content-Type': 'application/json'
     };
 
-    // DeepSeek 使用 api-key 认证格式，而非 Bearer
     if (apiType === 'deepseek') {
         headers['Authorization'] = `api-key ${apiKey}`;
     } else {
         headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    // DeepSeek 需要指定 model
     if (apiType === 'deepseek' && body) {
         body.model = config.model;
     }
@@ -66,16 +63,14 @@ async function proxyRequest(apiType, endpoint, body, apiKey) {
     return data;
 }
 
-// 健康检查
 app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         timestamp: new Date().toISOString(),
         hasApiKey: !!(process.env.DEEPSEEK_API_KEY)
     });
 });
 
-// 语言模型对话接口
 app.post('/api/chat', async (req, res) => {
     try {
         const { messages, apiKey, apiType = 'deepseek' } = req.body;
@@ -84,7 +79,6 @@ app.post('/api/chat', async (req, res) => {
             return res.status(400).json({ error: '无效的 messages 参数' });
         }
 
-        // 优先使用环境变量中的 API Key，如果没有则使用请求中的
         const key = process.env.DEEPSEEK_API_KEY || apiKey;
         if (!key) {
             return res.status(400).json({ error: 'API Key 未配置' });
@@ -99,14 +93,13 @@ app.post('/api/chat', async (req, res) => {
 
     } catch (error) {
         console.error('Chat API Error:', error.message);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: error.message 
+            error: error.message
         });
     }
 });
 
-// 图像生成接口
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt, size, style, apiKey } = req.body;
@@ -115,20 +108,16 @@ app.post('/api/generate-image', async (req, res) => {
             return res.status(400).json({ error: '缺少 prompt 参数' });
         }
 
-        // 优先使用环境变量中的 API Key
         const key = process.env.IMAGE_API_KEY || apiKey;
         if (!key) {
             return res.status(400).json({ error: '图像 API Key 未配置' });
         }
 
-        // 这里需要配置你自己的图像生成 API
-        // 目前只是一个示例，你需要替换为实际的图像 API
         const imageApiEndpoint = process.env.IMAGE_API_ENDPOINT;
-        
         if (!imageApiEndpoint) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: '图像 API Endpoint 未配置，请联系管理员配置' 
+                error: '图像 API Endpoint 未配置，请联系管理员配置'
             });
         }
 
@@ -148,7 +137,7 @@ app.post('/api/generate-image', async (req, res) => {
         }
 
         const url = data.image_url || data.url || (data.data && data.data.url);
-        
+
         res.json({
             success: true,
             url: url
@@ -156,21 +145,21 @@ app.post('/api/generate-image', async (req, res) => {
 
     } catch (error) {
         console.error('Image API Error:', error.message);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: error.message 
+            error: error.message
         });
     }
 });
 
-// 启动服务器
-app.listen(PORT, () => {
+// 显式监听 0.0.0.0，确保 Railway 能连接到服务
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
 ║     🎨 AI Painter 后端服务已启动                      ║
 ║                                                       ║
-║     本地访问: http://localhost:${PORT}                   ║
+║     监听地址: 0.0.0.0:${PORT}                           ║
 ║                                                       ║
 ║     配置说明:                                          ║
 ║     • DEEPSEEK_API_KEY - DeepSeek API 密钥           ║
@@ -179,8 +168,8 @@ app.listen(PORT, () => {
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
     `);
-    
+
     if (!process.env.DEEPSEEK_API_KEY) {
-        console.log('⚠️  警告: DEEPSEEK_API_KEY 未设置，请创建 .env 文件或设置环境变量');
+        console.log('⚠️  警告: DEEPSEEK_API_KEY 未设置，请在 Railway Variables 或 .env 文件中配置');
     }
 });
