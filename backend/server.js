@@ -30,9 +30,15 @@ async function proxyRequest(apiType, endpoint, body, apiKey) {
     const url = `${config.baseUrl}/${endpoint}`;
     
     const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
     };
+
+    // DeepSeek 使用 api-key 认证格式，而非 Bearer
+    if (apiType === 'deepseek') {
+        headers['Authorization'] = `api-key ${apiKey}`;
+    } else {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+    }
 
     // DeepSeek 需要指定 model
     if (apiType === 'deepseek' && body) {
