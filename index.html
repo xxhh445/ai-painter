@@ -1055,7 +1055,7 @@
 {"question": "你想问的问题", "ready": false}`;
 
             try {
-                const isDeepSeek = config.lmEndpoint.includes('deepseek');
+                const isDeepSeek = config.lmEndpoint.toLowerCase().includes('deepseek');
                 const headers = {
                     'Content-Type': 'application/json'
                 };
@@ -1073,31 +1073,58 @@
                         { role: 'user', content: userMessage }
                     ],
                     temperature: 0.7,
-                    max_tokens: 1000
+                    max_tokens: 1000,
+                    stream: false
                 };
 
                 if (isDeepSeek) {
                     requestBody.model = 'deepseek-chat';
                 }
 
+                console.log('=== API 请求调试信息 ===');
+                console.log('Endpoint:', config.lmEndpoint);
+                console.log('Is DeepSeek:', isDeepSeek);
+                console.log('Headers:', JSON.stringify(headers));
+                console.log('Request Body:', JSON.stringify(requestBody));
+
                 const response = await fetch(config.lmEndpoint, {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify(requestBody),
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    credentials: 'omit'
                 });
 
+                console.log('Response Status:', response.status, response.statusText);
+                
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => null);
-                    const errorMsg = errorData?.error?.message || errorData?.message || `HTTP ${response.status}`;
+                    const errorText = await response.text().catch(() => null);
+                    let errorMsg = `HTTP ${response.status} ${response.statusText}`;
+                    try {
+                        const errorData = JSON.parse(errorText || '{}');
+                        errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+                    } catch (e) {
+                        if (errorText) {
+                            errorMsg += ' - ' + errorText.substring(0, 200);
+                        }
+                    }
                     throw new Error('API 请求失败: ' + errorMsg);
                 }
                 
                 const data = await response.json();
+                console.log('Response Data:', data);
+                
+                const responseContent = data.choices?.[0]?.message?.content || 
+                                      data.response || 
+                                      data.text || 
+                                      JSON.stringify(data);
                 return {
                     success: true,
-                    response: data.choices?.[0]?.message?.content || data.response || data.text || ''
+                    response: responseContent
                 };
             } catch (error) {
+                console.error('API Error:', error.message);
                 return { success: false, error: error.message };
             }
         }
