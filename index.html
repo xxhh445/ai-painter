@@ -1055,27 +1055,47 @@
 {"question": "你想问的问题", "ready": false}`;
 
             try {
+                const isDeepSeek = config.lmEndpoint.includes('deepseek');
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (isDeepSeek) {
+                    headers['Authorization'] = 'api-key ' + config.lmKey;
+                } else {
+                    headers['Authorization'] = 'Bearer ' + config.lmKey;
+                }
+
+                const requestBody = {
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        ...state.conversation,
+                        { role: 'user', content: userMessage }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1000
+                };
+
+                if (isDeepSeek) {
+                    requestBody.model = 'deepseek-chat';
+                }
+
                 const response = await fetch(config.lmEndpoint, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + config.lmKey
-                    },
-                    body: JSON.stringify({
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            ...state.conversation,
-                            { role: 'user', content: userMessage }
-                        ],
-                        temperature: 0.7
-                    })
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
                 });
 
-                if (!response.ok) throw new Error('API 请求失败');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    const errorMsg = errorData?.error?.message || errorData?.message || `HTTP ${response.status}`;
+                    throw new Error('API 请求失败: ' + errorMsg);
+                }
+                
                 const data = await response.json();
                 return {
                     success: true,
-                    response: data.choices?.[0]?.message?.content || data.response || ''
+                    response: data.choices?.[0]?.message?.content || data.response || data.text || ''
                 };
             } catch (error) {
                 return { success: false, error: error.message };
