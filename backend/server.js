@@ -4,13 +4,17 @@ const cors = require('cors');
 const path = require('path');
 const fetch = require('node-fetch');
 
+console.log('=== 启动前检查 ===');
+console.log('Node.js 版本:', process.version);
+console.log('PORT 环境变量:', process.env.PORT);
+console.log('DEEPSEEK_API_KEY 已配置:', !!process.env.DEEPSEEK_API_KEY);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// 提供前端静态文件（index.html 在项目根目录）
 app.use(express.static(path.join(__dirname, '..')));
 
 const API_CONFIG = {
@@ -42,10 +46,7 @@ async function proxyRequest(apiType, endpoint, body, apiKey) {
         body.model = config.model;
     }
 
-    console.log(`[${new Date().toISOString()}] ${apiType} API 请求:`, {
-        url,
-        model: body?.model || 'N/A'
-    });
+    console.log(`[${new Date().toISOString()}] ${apiType} API 请求:`, { url, model: body?.model || 'N/A' });
 
     const response = await fetch(url, {
         method: 'POST',
@@ -67,7 +68,8 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        hasApiKey: !!(process.env.DEEPSEEK_API_KEY)
+        hasApiKey: !!(process.env.DEEPSEEK_API_KEY),
+        port: PORT
     });
 });
 
@@ -152,8 +154,7 @@ app.post('/api/generate-image', async (req, res) => {
     }
 });
 
-// 显式监听 0.0.0.0，确保 Railway 能连接到服务
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
@@ -170,6 +171,14 @@ app.listen(PORT, '0.0.0.0', () => {
     `);
 
     if (!process.env.DEEPSEEK_API_KEY) {
-        console.log('⚠️  警告: DEEPSEEK_API_KEY 未设置，请在 Railway Variables 或 .env 文件中配置');
+        console.log('⚠️  警告: DEEPSEEK_API_KEY 未设置');
+    }
+});
+
+server.on('error', (err) => {
+    console.error('服务器启动错误:', err.message);
+    console.error('错误代码:', err.code);
+    if (err.code === 'EADDRINUSE') {
+        console.error('端口 ${PORT} 已被占用!');
     }
 });
