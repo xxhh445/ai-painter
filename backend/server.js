@@ -2,16 +2,19 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
-console.log('Starting AI Painter server...');
+console.log('[BOOT] Initializing AI Painter server...');
+console.log('[BOOT] PORT env =', process.env.PORT);
+console.log('[BOOT] NODE_ENV =', process.env.NODE_ENV);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT) || 3000;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
 
 app.get('/api/health', (req, res) => {
+    console.log('[GET] /api/health from', req.ip);
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -35,22 +38,19 @@ app.post('/api/chat', async (req, res) => {
         const fetch = require('node-fetch');
         const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `api-key ${apiKey}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'api-key ' + apiKey },
             body: JSON.stringify({ model: 'deepseek-chat', messages })
         });
 
         const data = await response.json();
         if (!response.ok) {
-            console.error('DeepSeek API error:', data);
+            console.error('[CHAT] API error:', data);
             return res.status(500).json({ success: false, error: data?.error?.message || 'API request failed' });
         }
 
         res.json({ success: true, response: data.choices?.[0]?.message?.content || '' });
     } catch (error) {
-        console.error('Chat error:', error.message);
+        console.error('[CHAT] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -64,7 +64,6 @@ app.post('/api/generate-image', async (req, res) => {
 
         const apiKey = process.env.IMAGE_API_KEY;
         const endpoint = process.env.IMAGE_API_ENDPOINT;
-
         if (!apiKey || !endpoint) {
             return res.status(400).json({ success: false, error: 'Image API not configured' });
         }
@@ -72,10 +71,7 @@ app.post('/api/generate-image', async (req, res) => {
         const fetch = require('node-fetch');
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
             body: JSON.stringify({ prompt })
         });
 
@@ -86,12 +82,24 @@ app.post('/api/generate-image', async (req, res) => {
 
         res.json({ success: true, url: data.image_url || data.url || (data.data && data.data.url) });
     } catch (error) {
-        console.error('Image error:', error.message);
+        console.error('[IMAGE] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running at http://0.0.0.0:${PORT}`);
-    console.log(`Ready to serve requests!');
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log('[BOOT] Server listening on 0.0.0.0:' + PORT);
+    console.log('[BOOT] Server is ready!');
+});
+
+server.on('error', (err) => {
+    console.error('[SERVER ERROR]', err.code, err.message);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('[UNCAUGHT]', err.message);
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('[UNHANDLED]', err);
 });
