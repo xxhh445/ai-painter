@@ -1,0 +1,21 @@
+# Supabase 配置文件
+# 通过此文件管理你的 Supabase 项目配置
+
+# ============ 部署步骤 ============
+# 1. 在 https://supabase.com 创建项目
+# 2. 安装 Supabase CLI: npm install -g supabase
+# 3. 登录: supabase login
+# 4. 关联项目: supabase link --project-ref YOUR_PROJECT_ID
+# 5. 在 Supabase Dashboard → Edge Functions → Secrets 中添加:
+#    DEEPSEEK_API_KEY=your-deepseek-api-key
+# 6. 部署函数:
+#    supabase functions deploy chat --no-verify-jwt
+#    supabase functions deploy generate-image --no-verify-jwt
+#
+# ============ 函数 URL ============
+# 部署后，你的函数 URL 为:
+# https://YOUR_PROJECT_ID.supabase.co/functions/v1/chat
+# https://YOUR_PROJECT_ID.supabase.co/functions/v1/generate-image
+#
+# 注意：使用 --no-verify-jwt 允许匿名访问（适合公开应用）
+# 如果需要认证保护，请移除该标志并使用 Supabase Auth
