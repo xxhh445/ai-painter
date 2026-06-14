@@ -799,7 +799,7 @@
     <!-- Settings Modal -->
     <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
         <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:20px; padding:30px; max-width:500px; width:90%;">
-            <h2 style="font-size:1.3rem; margin-bottom:20px;">API 设置</h2>
+            <h2 style="font-size:1.3rem; margin-bottom:20px;">Supabase 配置</h2>
             <div style="margin-bottom:20px;">
                 <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">DeepSeek API Key</label>
                 <input type="password" id="apiKeyInput" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:0.9rem;">
@@ -818,7 +818,8 @@
     <script>
         // State
         const state = {
-            apiKey: localStorage.getItem('deepseek_api_key') || '',
+            supabaseUrl: localStorage.getItem('supabase_url') || '',
+    supabaseAnonKey: localStorage.getItem('supabase_anon_key') || '',
             isProcessing: false,
             conversation: [],
             currentImageUrl: null
@@ -892,7 +893,8 @@
 
         // Settings modal
         settingsBtn.addEventListener('click', () => {
-            apiKeyInput.value = state.apiKey;
+            supabaseUrlInput.value = state.supabaseUrl;
+            supabaseAnonKeyInput.value = state.supabaseAnonKey;
             settingsModal.style.display = 'flex';
         });
 
@@ -901,8 +903,10 @@
         });
 
         saveSettings.addEventListener('click', () => {
-            state.apiKey = apiKeyInput.value.trim();
-            localStorage.setItem('deepseek_api_key', state.apiKey);
+            state.supabaseUrl = supabaseUrlInput.value.trim().replace(/\/$/, '');
+            state.supabaseAnonKey = supabaseAnonKeyInput.value.trim();
+            localStorage.setItem('supabase_url', state.supabaseUrl);
+            localStorage.setItem('supabase_anon_key', state.supabaseAnonKey);
             updateApiStatus();
             settingsModal.style.display = 'none';
         });
@@ -912,8 +916,8 @@
             const message = chatInput.value.trim();
             if (!message || state.isProcessing) return;
 
-            if (!state.apiKey) {
-                addMessage('请先在设置中配置 API Key', 'system');
+            if (!state.supabaseUrl || !state.supabaseAnonKey) {
+                addMessage('请先在设置中配置 Supabase 项目', 'system');
                 settingsModal.style.display = 'flex';
                 return;
             }
@@ -931,17 +935,17 @@
                     { role: 'user', content: message }
                 ];
 
-                // 使用当前页面的域名作为后端地址（与前端同域部署）
-                const backendUrl = window.location.origin;
+                const supabaseUrl = state.supabaseUrl;
+                const supabaseAnonKey = state.supabaseAnonKey;
 
-                const response = await fetch(backendUrl + '/api/chat', {
+                const response = await fetch(supabaseUrl + '/functions/v1/chat', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + supabaseAnonKey
                     },
                     body: JSON.stringify({
-                        messages: messages,
-                        apiKey: state.apiKey
+                        messages: messages
                     })
                 });
 
@@ -976,8 +980,8 @@
             const prompt = promptInput.value.trim();
             if (!prompt || state.isProcessing) return;
 
-            if (!state.apiKey) {
-                addMessage('请先在设置中配置 API Key', 'system');
+            if (!state.supabaseUrl || !state.supabaseAnonKey) {
+                addMessage('请先在设置中配置 Supabase 项目', 'system');
                 settingsModal.style.display = 'flex';
                 return;
             }
@@ -1070,7 +1074,7 @@
         });
 
         // Welcome message
-        addMessage('欢迎使用 AI 绘画工坊！请先点击右上角设置按钮配置你的 DeepSeek API Key，然后就可以开始创作了！', 'system');
+        addMessage('欢迎使用 AI 绘画工坊！请先点击右上角设置按钮配置你的 Supabase 项目（URL 和 Anon Key），确保已部署 chat 和 generate-image 两个 Edge Functions，然后就可以开始创作了！', 'system');
     </script>
 </body>
 </html>
