@@ -22,6 +22,10 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.post('/api/chat', async (req, res) => {
     try {
         const { messages } = req.body;
