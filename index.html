@@ -801,9 +801,15 @@
         <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:20px; padding:30px; max-width:500px; width:90%;">
             <h2 style="font-size:1.3rem; margin-bottom:20px;">Supabase 配置</h2>
             <div style="margin-bottom:20px;">
-                <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">DeepSeek API Key</label>
-                <input type="password" id="apiKeyInput" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:0.9rem;">
-            </div>
+                <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">Supabase 项目 URL</label>
+                <input type="text" id="supabaseUrlInput" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:1rem; font-family:inherit; margin-bottom:16px;" placeholder="https://xxxx.supabase.co">
+                <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">Supabase Anon Key</label>
+                <input type="password" id="supabaseAnonKeyInput" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:1rem; font-family:inherit;" placeholder="eyJhbGciOi...">
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-top:8px; line-height:1.6;">
+                    配置信息仅保存在浏览器本地存储中。<br>
+                    在 <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--accent-primary);">Supabase Dashboard</a> → 你的项目 → Settings → API 中获取。<br>
+                    确保已部署 Edge Functions：<strong>chat</strong> 和 <strong>generate-image</strong>
+                </div>
             <div style="display:flex; gap:10px;">
                 <button id="saveSettings" style="flex:1; padding:12px; background:linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border:none; border-radius:8px; color:white; font-weight:500; cursor:pointer;">保存</button>
                 <button id="closeSettings" style="flex:1; padding:12px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; color:var(--text-secondary); cursor:pointer;">关闭</button>
@@ -846,16 +852,19 @@
         const apiStatus = document.getElementById('apiStatus');
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsModal = document.getElementById('settingsModal');
-        const apiKeyInput = document.getElementById('apiKeyInput');
+        const supabaseUrlInput = document.getElementById('supabaseUrlInput');
+        const supabaseAnonKeyInput = document.getElementById('supabaseAnonKeyInput');
         const saveSettings = document.getElementById('saveSettings');
         const closeSettings = document.getElementById('closeSettings');
 
         // API Status
         function updateApiStatus() {
-            if (state.apiKey) {
-                apiStatus.classList.add('active');
+            if (state.supabaseUrl && state.supabaseAnonKey) {
+                apiStatus.classList.add("active");
+                apiStatus.textContent = "● 已连接";
             } else {
-                apiStatus.classList.remove('active');
+                apiStatus.classList.remove("active");
+                apiStatus.textContent = "● 未配置";
             }
         }
         updateApiStatus();
@@ -1002,13 +1011,35 @@
                 // Since DeepSeek doesn't do image generation - we need another service
 
                 // For image generation, we'll try to use a free service
-                // Try using Pollinations.ai (free, no API key needed)
+                const supabaseUrl = state.supabaseUrl;
+                const supabaseAnonKey = state.supabaseAnonKey;
 
                 const size = imageSize.value;
-                const [width, height] = size.split('x');
+                const [width, height] = size.split("x");
+                const styleText = imageStyle.options[imageStyle.selectedIndex].text;
 
-                // Use Pollinations.ai for free image generation
-                const imageUrl = `https://image.pollinations.ai/prompt/` + 
+                const imgResponse = await fetch(supabaseUrl + "/functions/v1/generate-image", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + supabaseAnonKey
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt + ", " + styleText + ", width=" + width + ", height=" + height
+                    })
+                });
+
+                if (!imgResponse.ok) {
+                    const errData = await imgResponse.json();
+                    throw new Error(errData.error || "图像生成失败");
+                }
+
+                const imgResult = await imgResponse.json();
+                if (!imgResult.success || !imgResult.url) {
+                    throw new Error("图像生成失败");
+                }
+
+                const imageUrl = imgResult.url;
                     encodeURIComponent(prompt + ', ' + imageStyle.options[imageStyle.selectedIndex].text) +
                     `?width=${width}&height=${height}&nologo=true`;
 
