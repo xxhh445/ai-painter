@@ -801,10 +801,18 @@
         <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:20px; padding:30px; max-width:500px; width:90%;">
             <h2 style="font-size:1.3rem; margin-bottom:20px;">Supabase 配置</h2>
             <div style="margin-bottom:20px;">
-                <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">Supabase 项目 URL</label>
+                <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">🔑 DeepSeek API Key</label>
+                <input type="password" id="deepseekApiKey" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:1rem; font-family:inherit; margin-bottom:16px;" placeholder="sk-...">
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-top:-8px; margin-bottom:16px;">你的 API Key 仅存储在你的浏览器中，不会上传到任何平台。</div>
+
+                <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">🔗 Supabase 项目 URL</label>
                 <input type="text" id="supabaseUrlInput" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:1rem; font-family:inherit; margin-bottom:16px;" placeholder="https://xxxx.supabase.co">
-                <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">Supabase Anon Key</label>
+                <label style="display:block; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">🔐 Supabase Anon Key</label>
                 <input type="password" id="supabaseAnonKeyInput" style="width:100%; padding:12px 16px; background:var(--bg-secondary); border:2px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:1rem; font-family:inherit;" placeholder="eyJhbGciOi...">
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-top:8px; line-height:1.6;">
+                    Supabase URL 和 Anon Key 用于调用后端中转 API。<br>
+                    在 <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--accent-primary);">Supabase Dashboard</a> → Settings → API 获取。
+                </div>
                 <div style="font-size:0.85rem; color:var(--text-muted); margin-top:8px; line-height:1.6;">
                     配置信息仅保存在浏览器本地存储中。<br>
                     在 <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--accent-primary);">Supabase Dashboard</a> → 你的项目 → Settings → API 中获取。<br>
@@ -824,7 +832,9 @@
     <script>
         // State
         const state = {
-            supabaseUrl: localStorage.getItem('supabase_url') || '',
+    deepseekApiKey: localStorage.getItem('deepseek_api_key') || '',
+    supabaseUrl: localStorage.getItem('supabase_url') || '',
+    supabaseAnonKey: localStorage.getItem('supabase_anon_key') || '',
     supabaseAnonKey: localStorage.getItem('supabase_anon_key') || '',
             isProcessing: false,
             conversation: [],
@@ -859,10 +869,17 @@
 
         // API Status
         function updateApiStatus() {
-            if (state.supabaseUrl && state.supabaseAnonKey) {
+            if (state.deepseekApiKey && state.supabaseUrl && state.supabaseAnonKey) {
                 apiStatus.classList.add("active");
                 apiStatus.textContent = "● 已连接";
+            } else if (state.deepseekApiKey) {
+                apiStatus.classList.add("active");
+                apiStatus.textContent = "● 已配置 API Key";
             } else {
+                apiStatus.classList.remove("active");
+                apiStatus.textContent = "● 未配置";
+            }
+        }
                 apiStatus.classList.remove("active");
                 apiStatus.textContent = "● 未配置";
             }
@@ -902,7 +919,9 @@
 
         // Settings modal
         settingsBtn.addEventListener('click', () => {
+            document.getElementById("deepseekApiKey").value = state.deepseekApiKey;
             supabaseUrlInput.value = state.supabaseUrl;
+            supabaseAnonKeyInput.value = state.supabaseAnonKey;
             supabaseAnonKeyInput.value = state.supabaseAnonKey;
             settingsModal.style.display = 'flex';
         });
@@ -912,7 +931,9 @@
         });
 
         saveSettings.addEventListener('click', () => {
-            state.supabaseUrl = supabaseUrlInput.value.trim().replace(/\/$/, '');
+            document.getElementById("deepseekApiKey").value = state.deepseekApiKey;
+            supabaseUrlInput.value = state.supabaseUrl;
+            supabaseAnonKeyInput.value = state.supabaseAnonKey;
             state.supabaseAnonKey = supabaseAnonKeyInput.value.trim();
             localStorage.setItem('supabase_url', state.supabaseUrl);
             localStorage.setItem('supabase_anon_key', state.supabaseAnonKey);
@@ -925,9 +946,15 @@
             const message = chatInput.value.trim();
             if (!message || state.isProcessing) return;
 
+            if (!state.deepseekApiKey) {
+                addMessage("请先在设置中配置 DeepSeek API Key", "system");
+                settingsModal.style.display = "flex";
+                return;
+            }
+
             if (!state.supabaseUrl || !state.supabaseAnonKey) {
-                addMessage('请先在设置中配置 Supabase 项目', 'system');
-                settingsModal.style.display = 'flex';
+                addMessage("请先在设置中配置 Supabase URL 和 Anon Key", "system");
+                settingsModal.style.display = "flex";
                 return;
             }
 
@@ -947,11 +974,18 @@
                 const supabaseUrl = state.supabaseUrl;
                 const supabaseAnonKey = state.supabaseAnonKey;
 
-                const response = await fetch(supabaseUrl + '/functions/v1/chat', {
-                    method: 'POST',
+                const response = await fetch(supabaseUrl + "/functions/v1/chat", {
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + supabaseAnonKey
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + supabaseAnonKey
+                    },
+                    body: JSON.stringify({
+                        apiKey: state.deepseekApiKey,
+                        messages: messages,
+                        userId: "user_local_test"
+                    })
+                });
                     },
                     body: JSON.stringify({
                         messages: messages
@@ -989,9 +1023,15 @@
             const prompt = promptInput.value.trim();
             if (!prompt || state.isProcessing) return;
 
+            if (!state.deepseekApiKey) {
+                addMessage("请先在设置中配置 DeepSeek API Key", "system");
+                settingsModal.style.display = "flex";
+                return;
+            }
+
             if (!state.supabaseUrl || !state.supabaseAnonKey) {
-                addMessage('请先在设置中配置 Supabase 项目', 'system');
-                settingsModal.style.display = 'flex';
+                addMessage("请先在设置中配置 Supabase URL 和 Anon Key", "system");
+                settingsModal.style.display = "flex";
                 return;
             }
 
@@ -1021,6 +1061,18 @@
                 const imgResponse = await fetch(supabaseUrl + "/functions/v1/generate-image", {
                     method: "POST",
                     headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + supabaseAnonKey
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt + ", " + styleText + ", width=" + width + ", height=" + height,
+                        imageApiKey: "",
+                        imageApiEndpoint: "",
+                        userId: "user_local_test",
+                        width: width,
+                        height: height
+                    })
+                });
                         "Content-Type": "application/json",
                         "Authorization": "Bearer " + supabaseAnonKey
                     },
@@ -1105,7 +1157,7 @@
         });
 
         // Welcome message
-        addMessage('欢迎使用 AI 绘画工坊！请先点击右上角设置按钮配置你的 Supabase 项目（URL 和 Anon Key），确保已部署 chat 和 generate-image 两个 Edge Functions，然后就可以开始创作了！', 'system');
+        addMessage("欢迎使用 AI 绘画工坊！请先点击右上角设置按钮配置：1) DeepSeek API Key（你自己的） 2) Supabase URL 和 Anon Key（用于调用中转 API）。配置完成后就可以开始创作了！", "system");
     </script>
 </body>
 </html>
